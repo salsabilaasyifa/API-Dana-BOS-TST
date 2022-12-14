@@ -1,5 +1,4 @@
 # Module Imports
-import mariadb
 import sys
 from flask import Flask, request, jsonify
 import json
@@ -9,6 +8,29 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask_mail import Mail, Message
 import pyotp
+import sqlalchemy
+from sqlalchemy.orm import sessionmaker, scoped_session
+import pymysql
+
+
+def connect_unix_socket() -> sqlalchemy.engine.base.Engine:
+
+    pool = sqlalchemy.create_engine(
+        # Equivalent URL:
+        # mysql+pymysql://<db_user>:<db_pass>@/<db_name>?unix_socket=<socket_path>/<cloud_sql_instance_name>
+        sqlalchemy.engine.url.URL.create(
+            drivername="mysql+pymysql",
+            username="root",
+            password="salsabilaas",
+            database="tubes_tst",
+            query={"unix_socket": "/cloudsql/tubes-tst-371605:asia-southeast2:tubes-tst"},
+        ),
+        # ...
+    )
+    return pool
+# engine = sqlalchemy.create_engine('mysql+pymysql://root:salsabilaas@34.101.123.23:3306/tubes_tst')
+engine = connect_unix_socket()
+Session = scoped_session(sessionmaker(bind=engine))
 
 def hash_password(password):
   sha256 = hashlib.sha256()
@@ -19,6 +41,7 @@ def hash_password(password):
 # Connect to MariaDB Platform
 app = Flask(__name__)
 
+app.config ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.sqlite3'
 app.config['SECRET_KEY'] = '7eSEw7FDi6FHwBS7WyeVlrSjzWhGT4NW'
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
@@ -30,20 +53,10 @@ app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 totp = pyotp.TOTP('JKE5UXZ3Q3IJQVXPQQC4NKNNO2XBFQ7R', interval=120)
 
-try:
-    conn = mariadb.connect(
-        user="salsabilaasyifa",
-        password="tstkeren",
-        host="localhost",
-        port=3306,
-        database="tubes_tst"
-    )
-except mariadb.Error as e:
-    print(f"Error connecting to MariaDB Platform: {e}")
-    sys.exit(1)
+conn = Session
 
 if(conn):
-    cur = conn.cursor()
+    cur = conn
 
 def token(f):
     @wraps(f)
@@ -67,11 +80,11 @@ def token(f):
 @app.route("/kr")
 @token
 def kr(user):
-    cur = conn.cursor()
-    cur.execute(
+    cur = conn
+    rows = cur.execute(
     "SELECT * FROM kondisiruangan")
     row_headers=[x[0] for x in cur.description]
-    rows = cur.fetchall()
+    rows = cur.all()
     json_data=[]
     for result in rows:
         json_data.append(dict(zip(row_headers,result)))
@@ -81,11 +94,11 @@ def kr(user):
 @app.route("/pd")
 @token
 def pd(user):
-    cur = conn.cursor()
-    cur.execute(
+    cur = conn
+    rows = cur.execute(
     "SELECT * FROM penerimaandana")
     row_headers=[x[0] for x in cur.description]
-    rows = cur.fetchall()
+    rows = cur.all()
     json_data=[]
     for result in rows:
         json_data.append(dict(zip(row_headers,result)))
@@ -96,9 +109,9 @@ def pd(user):
 @token
 def deleteKR(user):
     if request.method == "DELETE":
-        cur = conn.cursor()
+        cur = conn
         id = request.args.get("id")
-        cur.execute(
+        rows = cur.execute(
         f"DELETE FROM kondisiruangan WHERE ID = {id}")
         return json.dumps({"message" : "Berhasil menghapus data"})
 
@@ -106,9 +119,9 @@ def deleteKR(user):
 @token
 def deletePD(user):
     if request.method == "DELETE":
-        cur = conn.cursor()
+        cur = conn
         id = request.args.get("id")
-        cur.execute(
+        rows = cur.execute(
         f"DELETE FROM penerimaandana WHERE ID = {id}")
         return json.dumps({"message" : "Berhasil menghapus data"})
 
@@ -116,7 +129,7 @@ def deletePD(user):
 @token
 def updKR(user):
     if request.method == "PUT":
-        cur = conn.cursor()
+        cur = conn
         data = dict(request.json)
         print(data)
         id = data['id']
@@ -127,7 +140,7 @@ def updKR(user):
         rusak_sedang = data["rusak_sedang"]
         rusak_berat = data["rusak_berat"]
         jumlah_ruangan = data["jumlah_ruangan"]
-        cur.execute(
+        rows = cur.execute(
         f'''UPDATE kondisiruangan 
             SET Nama_Kecamatan = '{nama_kecamatan}',
             Nama_Sekolah = '{nama_sekolah}',
@@ -144,7 +157,7 @@ def updKR(user):
 def writeKR(user):
     if request.method == "POST":
         try:
-            cur = conn.cursor()
+            cur = conn
             data = dict(request.json)
             id = data['id']
             nama_kecamatan = data["nama_kecamatan"]
@@ -154,7 +167,7 @@ def writeKR(user):
             rusak_sedang = data["rusak_sedang"]
             rusak_berat = data["rusak_berat"]
             jumlah_ruangan = data["jumlah_ruangan"]
-            cur.execute(
+            rows = cur.execute(
             f'''INSERT INTO kondisiruangan (ID, Nama_Kecamatan, Nama_Sekolah, Baik, Rusak_Ringan, Rusak_Sedang, Rusak_Berat, Jumlah_Ruangan)
                 VALUE({id}, '{nama_kecamatan}', '{nama_sekolah}', {baik}, {rusak_ringan}, {rusak_sedang}, {rusak_berat}, {jumlah_ruangan});''')
         except Exception as e:
@@ -165,7 +178,7 @@ def writeKR(user):
 @token
 def updPD(user):
     if request.method == "PUT":
-        cur = conn.cursor()
+        cur = conn
         data = dict(request.json)
         id = data['ID']
         nama_sekolah = data["Nama_Sekolah"]
@@ -175,7 +188,7 @@ def updPD(user):
         Penerimaan_Dana_TW_2_Rp = data["Penerimaan_Dana_TW_2_Rp"]
         Penerimaan_Dana_TW_3_Rp = data["Penerimaan_Dana_TW_3_Rp"]
         Penerimaan_Dana_TW_4_Rp = data["Penerimaan_Dana_TW_4_Rp"]
-        cur.execute(
+        rows = cur.execute(
         f'''UPDATE penerimaandana 
             SET Nama_Sekolah = '{nama_sekolah}',
             NPSN = {NPSN},
@@ -192,7 +205,7 @@ def updPD(user):
 def writePD(user):
     if request.method == "POST":
         try:
-            cur = conn.cursor()
+            cur = conn
             data = dict(request.json)
             id = data['ID']
             nama_sekolah = data["Nama_Sekolah"]
@@ -202,7 +215,7 @@ def writePD(user):
             Penerimaan_Dana_TW_2_Rp = data["Penerimaan_Dana_TW_2_Rp"]
             Penerimaan_Dana_TW_3_Rp = data["Penerimaan_Dana_TW_3_Rp"]
             Penerimaan_Dana_TW_4_Rp = data["Penerimaan_Dana_TW_4_Rp"]
-            cur.execute(
+            rows = cur.execute(
             f'''INSERT INTO penerimaandana (ID, Nama_Sekolah, NPSN, Status, Penerimaan_Dana_TW_1_Rp, Penerimaan_Dana_TW_2_Rp, Penerimaan_Dana_TW_3_Rp, Penerimaan_Dana_TW_4_Rp)
                 VALUE({id}, '{nama_sekolah}', {NPSN}, '{status}', {Penerimaan_Dana_TW_1_Rp}, {Penerimaan_Dana_TW_2_Rp}, {Penerimaan_Dana_TW_3_Rp}, {Penerimaan_Dana_TW_4_Rp});''')
         except Exception as e:
@@ -211,7 +224,7 @@ def writePD(user):
 
 @app.route('/signup', methods=["POST"])
 def signup():
-    cur = conn.cursor()
+    cur = conn
     request_body = request.json
 
     body = {
@@ -225,7 +238,7 @@ def signup():
         return "Username is unavailable!"
     
     else:
-        cur.execute(
+        rows = cur.execute(
             f"INSERT INTO user(name, username, password, email) VALUES ('{body['name']}', '{body['username']}', '{hash_password(body['password'])}', '{body['email']}')"
         )
         conn.commit()
@@ -234,7 +247,7 @@ def signup():
     
 @app.route('/login', methods=["POST"])
 def login():
-    cur = conn.cursor()
+    cur = conn
     request_body = request.json
 
     body = {
@@ -242,16 +255,16 @@ def login():
         "password": request_body['password']
     }
 
-    cur.execute(
+    rows = cur.execute(
         f"SELECT * FROM user WHERE username='{body['username']}'"
     )
-    row_headers=[x[0] for x in cur.description]
-    rows = cur.fetchall()
-    
+
+    row_headers=rows.keys()
+    result = rows.all()
     json_data=None
-    for result in rows:
-        json_data=(dict(zip(row_headers,result)))
-   
+    for res in result:
+        json_data=(dict(zip(row_headers,res)))
+    print(json_data, 'LINE 251')
     if(json_data):
         if (hash_password(body['password'])==json_data["password"]):
             msg = Message(
@@ -274,18 +287,17 @@ def login():
 
 @app.route('/verify-otp', methods=["GET"])
 def verifyOTP():
-    cur = conn.cursor()
+    cur = conn
     request_body = request.json
 
     body = {
         "username": request_body['username'],
         "otp": request_body['otp']
     }
-    cur.execute(
+    rows = cur.execute(
         f"SELECT * FROM user WHERE username='{body['username']}'"
     )
     row_headers=[x[0] for x in cur.description]
-    rows = cur.fetchall()
     
     json_data=None
     for result in rows:
@@ -307,11 +319,11 @@ def verifyOTP():
 
 
 def getUserById(cur, id):
-    cur.execute(
+    rows = cur.execute(
         f"SELECT * FROM user WHERE id={id}"
     )
     row_headers=[x[0] for x in cur.description]
-    rows = cur.fetchall()
+    rows = cur.all()
     json_data= None
     for result in rows:
         json_data=(dict(zip(row_headers,result)))
@@ -319,11 +331,11 @@ def getUserById(cur, id):
     return json_data
 
 def checkUserAvailable(cur, body):
-    cur.execute(
+    rows = cur.execute(
         f"SELECT * FROM user WHERE username='{body['username']}'"
     )
     row_headers=[x[0] for x in cur.description]
-    rows = cur.fetchall()
+    rows = cur.all()
     json_data=[]
     for result in rows:
         json_data=(dict(zip(row_headers,result)))
@@ -331,4 +343,4 @@ def checkUserAvailable(cur, body):
     return json_data
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)
