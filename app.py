@@ -342,5 +342,35 @@ def checkUserAvailable(cur, body):
     
     return json_data
 
+# def getDanaSetahun(cur, id):
+#     rows = cur.execute(
+#         f"SELECT Penerimaan_Dana_TW_1_Rp + Penerimaan_Dana_TW_2_Rp + Penerimaan_Dana_TW_3_Rp + Penerimaan_Dana_TW_4_Rp AS total FROM penerimaandana WHERE id={id}"
+#     )
+#     row_headers=[x[0] for x in cur.description]
+#     rows = cur.all()
+#     json_data= None
+#     for result in rows:
+#         json_data=(dict(zip(row_headers,result)))
+    
+#     return json_data
+
+# def getDanaInfrastruktur(id):
+#     cur = conn
+#     total = getDanaSetahun(cur,id)
+#     result = total * 0.3
+#     return result
+
+# def getJumlahSiswa(id):
+#     cur = conn
+#     total = getDanaSetahun(cur,id)
+#     result = total / 1960000
+#     return result
+
+# def getJumlahKelas(id):
+#     cur = conn
+#     total = getJumlahSiswa(cur,id)
+#     result = total / 35
+#     return result
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
