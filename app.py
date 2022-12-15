@@ -58,6 +58,10 @@ conn = Session
 if(conn):
     cur = conn
 
+@app.route("/")
+def welcome():
+    return {"message": "welcome to Asa's API!"}
+
 def token(f):
     @wraps(f)
     def decorated(*args, **kwargs):
