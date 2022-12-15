@@ -111,7 +111,7 @@ def pd(user):
     cur.close()
     return json.dumps({"dana infrastruktur": json_data})
 
-@app.route("/dana-infrastruktur")
+@app.route("/kelas-layak")
 @token
 def pd(user):
     cur = conn
@@ -316,4 +316,4 @@ def checkUserAvailable(cur, body):
 #     return result
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000)
