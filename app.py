@@ -48,7 +48,7 @@ app.config['SECRET_KEY'] = '7eSEw7FDi6FHwBS7WyeVlrSjzWhGT4NW'
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = 'salsaasyifass@gmail.com'
-app.config['MAIL_PASSWORD'] = 'mawnhxpqabfstkqy'
+app.config['MAIL_PASSWORD'] = 'gguobwupepbfxqzt'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
@@ -99,21 +99,7 @@ def pd(user):
 
 @app.route("/dana-infrastruktur")
 @token
-def pd(user):
-    cur = conn
-    rows = cur.execute(
-    "SELECT nama_sekolah, (Penerimaan_Dana_TW_1_Rp + Penerimaan_Dana_TW_2_Rp + Penerimaan_Dana_TW_3_Rp + Penerimaan_Dana_TW_4_Rp) * 0.3 AS total FROM penerimaandana")
-    row_headers=[x[0] for x in cur.description]
-    rows = cur.all()
-    json_data=[]
-    for result in rows:
-        json_data.append(dict(zip(row_headers,result)))
-    cur.close()
-    return json.dumps({"dana infrastruktur": json_data})
-
-@app.route("/kelas-layak")
-@token
-def pd(user):
+def tpd(user):
     cur = conn
     rows = cur.execute(
     "SELECT nama_sekolah, (Penerimaan_Dana_TW_1_Rp + Penerimaan_Dana_TW_2_Rp + Penerimaan_Dana_TW_3_Rp + Penerimaan_Dana_TW_4_Rp) * 0.3 AS total FROM penerimaandana")
@@ -258,11 +244,12 @@ def verifyOTP():
     rows = cur.execute(
         f"SELECT * FROM user WHERE username='{body['username']}'"
     )
-    row_headers=[x[0] for x in cur.description]
+    
+    rows = rows.mappings()
     
     json_data=None
     for result in rows:
-        json_data=(dict(zip(row_headers,result)))
+        json_data=(dict(result))
 
     if(json_data):
         token = jwt.encode({
