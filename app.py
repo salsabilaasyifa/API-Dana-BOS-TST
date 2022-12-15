@@ -81,20 +81,6 @@ def token(f):
         return f(current_user, *args, **kwargs)
     return decorated
 
-@app.route("/kr")
-@token
-def kr(user):
-    cur = conn
-    rows = cur.execute(
-    "SELECT * FROM kondisiruangan")
-    row_headers=[x[0] for x in cur.description]
-    rows = cur.all()
-    json_data=[]
-    for result in rows:
-        json_data.append(dict(zip(row_headers,result)))
-    cur.close()
-    return json.dumps({"kondisi ruangan": json_data})
-
 @app.route("/pd")
 @token
 def pd(user):
@@ -109,16 +95,6 @@ def pd(user):
     cur.close()
     return json.dumps({"penerimaan dana": json_data})
 
-@app.route("/delete-kr", methods=["DELETE"])
-@token
-def deleteKR(user):
-    if request.method == "DELETE":
-        cur = conn
-        id = request.args.get("id")
-        rows = cur.execute(
-        f"DELETE FROM kondisiruangan WHERE ID = {id}")
-        return json.dumps({"message" : "Berhasil menghapus data"})
-
 @app.route("/delete-pd", methods=["DELETE"])
 @token
 def deletePD(user):
@@ -128,55 +104,6 @@ def deletePD(user):
         rows = cur.execute(
         f"DELETE FROM penerimaandana WHERE ID = {id}")
         return json.dumps({"message" : "Berhasil menghapus data"})
-
-@app.route("/update-kr", methods=["PUT"])
-@token
-def updKR(user):
-    if request.method == "PUT":
-        cur = conn
-        data = dict(request.json)
-        print(data)
-        id = data['id']
-        nama_kecamatan = data["nama_kecamatan"]
-        nama_sekolah = data["nama_sekolah"]
-        baik = data["baik"]
-        rusak_ringan = data["rusak_ringan"]
-        rusak_sedang = data["rusak_sedang"]
-        rusak_berat = data["rusak_berat"]
-        jumlah_ruangan = data["jumlah_ruangan"]
-        rows = cur.execute(
-        f'''UPDATE kondisiruangan 
-            SET Nama_Kecamatan = '{nama_kecamatan}',
-            Nama_Sekolah = '{nama_sekolah}',
-            Baik = {baik},
-            Rusak_Ringan = {rusak_ringan},
-            Rusak_Sedang = {rusak_sedang},
-            Rusak_Berat = {rusak_berat},
-            Jumlah_Ruangan = {jumlah_ruangan}
-            WHERE ID = {id}''')
-        return json.dumps({"message" : "Berhasil memperbarui data"})
-
-@app.route("/write-kr", methods=["POST"])
-@token
-def writeKR(user):
-    if request.method == "POST":
-        try:
-            cur = conn
-            data = dict(request.json)
-            id = data['id']
-            nama_kecamatan = data["nama_kecamatan"]
-            nama_sekolah = data["nama_sekolah"]
-            baik = data["baik"]
-            rusak_ringan = data["rusak_ringan"]
-            rusak_sedang = data["rusak_sedang"]
-            rusak_berat = data["rusak_berat"]
-            jumlah_ruangan = data["jumlah_ruangan"]
-            rows = cur.execute(
-            f'''INSERT INTO kondisiruangan (ID, Nama_Kecamatan, Nama_Sekolah, Baik, Rusak_Ringan, Rusak_Sedang, Rusak_Berat, Jumlah_Ruangan)
-                VALUE({id}, '{nama_kecamatan}', '{nama_sekolah}', {baik}, {rusak_ringan}, {rusak_sedang}, {rusak_berat}, {jumlah_ruangan});''')
-        except Exception as e:
-            return json.dumps({"message": str(e)})
-        return json.dumps({"message" : "Berhasil menambahkan data"})
 
 @app.route("/update-pd", methods=["PUT"])
 @token
