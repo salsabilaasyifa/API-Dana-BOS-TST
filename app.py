@@ -287,6 +287,20 @@ def deletePd():
   cur.execute("DELETE FROM penerimaandana WHERE id = %s", (id,))
   return f"Delete player success! [id = {id}]"
 
+
+@app.route('/core', methods=['GET'])
+def core():
+  response = requests.get('http://206.189.80.94:8080/calculate-krAll')
+  result = response.json()
+  print(result)
+  sorted_players = sorted(result, key=lambda x: x['Tingkat Kelayakan Infrastruktur'], reverse=True)
+  
+  res = []
+  if len(sorted_players) > 5:
+    for i in range(5):
+      res.append(sorted_players[i])
+
+  return jsonify(res)
 # @app.route('/useFTCore', methods=['GET'])
 # def useFTCore():
 #   auth_header = request.args.get("Authorization")
